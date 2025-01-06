@@ -3,59 +3,120 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> 
   <title>Login</title>
-</head>
-<body>
-    <div style="text-align: center; margin-top: 20%;">
-        <h1>Welcome Back</h1>
-        <button id="loginButton" style="padding: 10px 20px; font-size: 16px;">Login with Google</button>
-    </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
-
-    // Firebase configuration
-    const firebaseConfig = {
-        apiKey: "AIzaSyB4JvaT-0V-S8i-pAGcwMpZEYawKXxzTSk",
-        authDomain: "periodictable-d223e.firebaseapp.com",
-        projectId: "periodictable-d223e",
-        storageBucket: "periodictable-d223e.firebasestorage.app",
-        messagingSenderId: "7306314995",
-        appId: "1:7306314995:web:9fb42c98d9e95c25eee386",
-        measurementId: "G-BRH4GNZ9EM"
-    };
-
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth();
-    const provider = new GoogleAuthProvider();
-
-    // Check if the user is already logged in
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            // Redirect to index.html if the user is already logged in
-            window.location.href = "index.html";
-        }
-    });
-
-    // Login with Google
-    async function loginWithGoogle() {
-        try {
-            const result = await signInWithPopup(auth, provider);
-            window.location.href = "index.html";
-        } catch (error) {
-            alert("Failed to login. Please try again.");
-        }
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f1f1f1;
     }
 
-    // Use jQuery to handle button click
-    $(document).ready(function() {
-        $('#loginButton').click(function() {
-            loginWithGoogle();
-        });
-    });
-  </script>
+    /* Style the sign-in button to show the Google logo and text */
+    #signInButton {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background-color: white;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 12px 20px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      color: #333;
+      text-align: center;
+    }
+
+    #signInButton img {
+      width: 20px; /* Google logo size */
+      margin-right: 10px; /* Space between logo and text */
+    }
+
+    /* Style the button on hover */
+    #signInButton:hover {
+      background-color: #f8f8f8;
+    }
+
+  </style>
+</head>
+<body>
+    <h2>Welcome Back</h2>
+    <div id="g_id_signin"></div>
+
+    <script>
+        // Function to initialize the Google Sign-In button
+        function initializeGSI() {
+            google.accounts.id.initialize({
+                client_id: '7306314995-n038tb781uabkimad2e8fg9rdbmd01vj.apps.googleusercontent.com',
+                callback: handleCredentialResponse
+            });
+
+            // Render the Google Sign-In button
+            google.accounts.id.renderButton(
+                document.getElementById('g_id_signin'),
+                {
+                    theme: 'outline',
+                    size: 'large',
+                    text: 'sign_in_with',
+                    shape: 'rectangular',
+                    logo_alignment: 'left'
+                }
+            );
+        }
+
+        function handleCredentialResponse(response) {
+            const token = response.credential;
+
+            // Store the token in localStorage for future use
+            localStorage.setItem('google_token', token);
+
+            window.location.href = 'index.html';
+
+
+            // // Optionally, send the token to the server for validation
+            // fetch('/validate-token', {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify({ token: token }),
+            // })
+            // .then(response => response.json())
+            // .then(data => {
+            //     if (data.success) {
+            //         // Redirect to index.html after validation
+            //         window.location.href = 'index.html';
+            //     } else {
+            //         // Handle invalid token
+            //         alert('Authentication failed');
+            //     }
+            // })
+            // .catch(error => {
+            //     console.error('Error:', error);
+            //     alert('Authentication error');
+            // });
+        }
+
+        // Function to decode the JWT token and extract user details
+        function parseJwt(token) {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        }
+
+        // Wait for the script to load and initialize
+        window.onload = function() {
+            initializeGSI();
+        };
+    </script>
 </body>
 </html>

@@ -3,133 +3,531 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="google-signin-client_id" content="7306314995-acjg1jm526937qfb0q6pst19r4ouptcn.apps.googleusercontent.com">
   <title>3D Periodic Table</title>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/CSVLoader.js"></script>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> 
+  <link type="text/css" rel="stylesheet" href="main.css">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://apis.google.com/js/api.js"></script>
+  <script src="https://apis.google.com/js/platform.js" async defer></script>
+
+  <style>
+    a {
+        color: #8ff;
+    }
+
+    #menu {
+        position: absolute;
+        bottom: 20px;
+        width: 100%;
+        text-align: center;
+    }
+
+    .element {
+        width: 120px;
+        height: 160px;
+        box-shadow: 0px 0px 12px rgba(0,255,255,0.5);
+        border: 1px solid rgba(127,255,255,0.25);
+        font-family: Helvetica, sans-serif;
+        text-align: center;
+        line-height: normal;
+        cursor: default;
+    }
+
+    .element:hover {
+        box-shadow: 0px 0px 12px rgba(0,255,255,0.75);
+        border: 1px solid rgba(127,255,255,0.75);
+    }
+
+    .element .number {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        font-size: 12px;
+        color: rgba(127,255,255,0.75);
+    }
+
+    .element .symbol {
+        position: absolute;
+        top: 40px;
+        left: 0px;
+        right: 0px;
+        font-size: 60px;
+        font-weight: bold;
+        color: rgba(255,255,255,0.75);
+        text-shadow: 0 0 10px rgba(0,255,255,0.95);
+    }
+
+    .element .details {
+        position: absolute;
+        bottom: 15px;
+        left: 0px;
+        right: 0px;
+        font-size: 12px;
+        color: rgba(127,255,255,0.75);
+    }
+
+    button {
+        color: rgba(127,255,255,0.75);
+        background: transparent;
+        outline: 1px solid rgba(127,255,255,0.75);
+        border: 0px;
+        padding: 5px 10px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background-color: rgba(0,255,255,0.5);
+    }
+
+    button:active {
+        color: #000000;
+        background-color: rgba(0,255,255,0.75);
+    }
+    
+    .element {
+        position: relative;
+        width: 200px;  /* Set the desired width of the container */
+        height: 300px; /* Set the desired height of the container */
+        border: 2px solid #ccc;  /* Optional: border around the container */
+        overflow: hidden;  /* Ensures the image doesn't overflow outside the container */
+        transform-style: flat; /* Prevents the 3D transformations from affecting child elements */
+
+    }
+
+    .image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;  /* Ensures the image covers the entire container without distortion */
+        object-position: center;  /* Centers the image within the container */
+    }
+
+  </style>
 </head>
 <body>
-  <div id="container" style="text-align: center;">
-    <h1>3D P-File Table</h1>
-    <button id="signOutButton" style="padding: 10px 20px; font-size: 16px; display: none;" onclick="signOutUser()">Sign Out</button>
-    <div id="threejs-canvas"></div>
-  </div>
+    <button id="signOutButton">Sign Out</button>
+    <div id="container"></div>
+    <div id="menu">
+        <button id="table">TABLE</button>
+        <button id="sphere">SPHERE</button>
+        <button id="helix">HELIX</button>
+        <button id="grid">GRID</button>
+    </div>
+    
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "../build/three.module.js",
+        "three/addons/": "./jsm/"
+      }
+    }
+  </script>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
-    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+    import { getAuth, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+    import * as THREE from '../build/three.module.js';
 
-    // Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyB4JvaT-0V-S8i-pAGcwMpZEYawKXxzTSk",
-      authDomain: "periodictable-d223e.firebaseapp.com",
-      projectId: "periodictable-d223e",
-      storageBucket: "periodictable-d223e.firebasestorage.app",
-      messagingSenderId: "7306314995",
-      appId: "1:7306314995:web:9fb42c98d9e95c25eee386",
-      measurementId: "G-BRH4GNZ9EM"
-    };
+    import TWEEN from 'three/addons/libs/tween.module.js';
+    import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+    import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth();
+    // const firebaseConfig = {
+    //   apiKey: "AIzaSyB4JvaT-0V-S8i-pAGcwMpZEYawKXxzTSk",
+    //   authDomain: "periodictable-d223e.firebaseapp.com",
+    //   projectId: "periodictable-d223e",
+    //   storageBucket: "periodictable-d223e.appspot.com",
+    //   messagingSenderId: "7306314995",
+    //   appId: "1:7306314995:web:9fb42c98d9e95c25eee386",
+    //   measurementId: "G-BRH4GNZ9EM"
+    // };
 
-    // Check authentication state
-    onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        window.location.href = "login.html";
-      } else {
-        $("#signOutButton").show();
-        load3DTable();
-      }
-    });
+    // const app = initializeApp(firebaseConfig);
+    // const auth = getAuth(app);
+    // const provider = new GoogleAuthProvider();
+    const table = [];
+    const CLIENT_ID = '7306314995-acjg1jm526937qfb0q6pst19r4ouptcn.apps.googleusercontent.com';
+    const SECRET_KEY = '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';
+    const API_KEY = 'AIzaSyB4JvaT-0V-S8i-pAGcwMpZEYawKXxzTSk';
+    const SHEET_ID = '14hIsbDOzjo3l92wNCKAQBwZBmjMrYjiG1DdrNvQwbm4';
 
-    // Sign out function
-    function signOutUser() {
-      signOut(auth).then(() => {
-        window.location.href = "login.html";
-      }).catch((error) => {
-        alert("Error signing out. Please try again.");
-      });
-    }
+    // const table = [
+    //   'Lee Siew Suan', 'https://static.kasatria.com/pivot-img/photo/019.jpg', 25, 'CN', 'Writing',
+    //   'New Yee Chian', 'https://static.kasatria.com/pivot-img/photo/020.jpg', 22, 'CN', 'Cooking'
+    // ];
 
-    // Load the 3D Periodic Table
-    function load3DTable()
-    {
-      // Create the scene
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0xf0f0f0);
+    let camera, scene, renderer, controls;
 
-      // Create the camera
-      const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
-      camera.position.set(0, 50, 200);
-
-      // Create the renderer
-      const renderer = new THREE.WebGLRenderer();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      $("#threejs-canvas").append(renderer.domElement);
-
-      // Add light
-      const light = new THREE.PointLight(0xffffff, 1, 1000);
-      light.position.set(50, 50, 50);
-      scene.add(light);
-
-      const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
-      scene.add(ambientLight);
-
-      // Periodic table data (example: [symbol, x, y, z])
-      const elements = [
-        ["H", 0, 0, 0],
-        ["He", 10, 0, 0],
-        ["Li", 0, 10, 0],
-        ["Be", 10, 10, 0],
-        ["B", 20, 10, 0],
-        ["C", 30, 10, 0],
-        ["N", 40, 10, 0],
-        ["O", 50, 10, 0],
-        ["F", 60, 10, 0],
-        ["Ne", 70, 10, 0],
-      ];
-
-      // Add elements to the scene
-      $.each(elements, function (index, element) {
-        const [symbol, x, y, z] = element;
-
-        // Create a cube for each element
-        const geometry = new THREE.BoxGeometry(5, 5, 5);
-        const material = new THREE.MeshStandardMaterial({ color: 0x0077ff });
-        const cube = new THREE.Mesh(geometry, material);
-        cube.position.set(x, y, z);
-        scene.add(cube);
-
-        // Add a label for the element
-        const labelDiv = $("<div></div>")
-          .css({
-            position: "absolute",
-            color: "black",
-            fontSize: "12px",
-            transform: `translate(${x}px, ${y}px)`,
-            marginLeft: `${window.innerWidth / 2 + x}px`,
-            marginTop: `${window.innerHeight / 2 - y}px`,
-          })
-          .text(symbol);
-        $("body").append(labelDiv);
-      });
-
-      // Animation loop
-      function animate() {
-        requestAnimationFrame(animate);
-        renderer.render(scene, camera);
-      }
-      animate();
-    }
+    const objects = [];
+    const targets = { table: [], sphere: [], helix: [], grid: [] };
 
     // Attach event handler for sign out button
     $(document).ready(function() {
-      $("#signOutButton").click(function() {
-        signOutUser();
-      });
+        google.accounts.id.initialize({
+            client_id: CLIENT_ID, // Replace with your actual client ID
+        });
+
+        checkLoginStatus();
+    
+        $("#signOutButton").click(function() {
+            handleSignOut();
+        });
+
     });
+
+    // Function to check if the user is logged in
+    function checkLoginStatus() {
+        const token = localStorage.getItem('google_token');
+
+        if (token) {
+            console.log("User signed in.");
+            load3DTable();
+        } else {
+            // No token found, redirect to login page
+            window.location.href = 'login.html';
+        }
+    }
+
+    // Handle the sign-out process
+    function handleSignOut() {
+        const token = localStorage.getItem('google_token');
+        if (token) {
+            google.accounts.id.disableAutoSelect();
+            localStorage.removeItem('google_token');
+            window.location.href = "login.html";
+
+        } else {
+            console.log("No token found. User is not logged in.");
+            window.location.href = "login.html"; // Redirect to the login page if no token exists
+        }
+    }
+
+    // Fetch data from Google Sheets
+    function fetchSheetData() {
+        gapi.load('client:auth2', () => {
+            gapi.client.init({
+                apiKey: API_KEY,
+                clientId: CLIENT_ID,
+                discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
+            }).then(() => {
+                return gapi.client.sheets.spreadsheets.values.get({
+                    spreadsheetId: SHEET_ID,
+                    range: "Data Template!A1:F" // Adjust the range accordingly
+                });
+            }).then((response) => {
+                response.result.values.forEach((row, index) => {
+                    if (index !== 0){
+                      table.push(row);
+                    }
+                });
+
+                init();
+                animate();
+            }).catch((error) => {
+                console.error("Error fetching Google Sheets data", error);
+            });
+        });
+    }
+
+
+    // Load 3D Periodic Table
+    function load3DTable() {
+        fetchSheetData();
+    }
+
+    // Convert Currency to Float
+    function parseCurrencyToFloat(currencyString) {
+        return parseFloat(currencyString.replace(/[^0-9.-]+/g, ''));
+    }
+    function init() {
+
+      camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 );
+      camera.position.z = 3000;
+
+      scene = new THREE.Scene();
+
+      // table (20x10)
+      const numRows = 10;
+      const numColumns = 20;
+      for (let i = 0; i < table.length; i++) {
+        const row = table[i];
+        const rowValue = parseCurrencyToFloat(row[5]); // Convert row[5] to float
+
+        const element = document.createElement('div');
+        element.className = 'element';
+        element.style.position = 'relative';
+        element.style.width = '180px'; // Adjusted width for compact view
+        element.style.height = '240px'; // Adjusted height for compact view
+
+        // Set background color based on networth
+        if (rowValue < 100000) {
+            element.style.backgroundColor = 'rgba(239, 48, 34, 0.4)'; // Bright transparent red
+            element.style.boxShadow = '0 4px 8px rgba(239, 48, 34, 0.4)'; // Matching shadow
+        } else if (rowValue <= 200000) {
+            const opacity = 0.85 - (rowValue - 100000) / 100000 * 0.35; // Dynamic opacity
+            element.style.backgroundColor = `rgba(253, 202, 53, 0.4)`; // Gradient orange
+            element.style.boxShadow = `0 4px 8px rgba(253, 202, 53, 0.4)`; // Matching shadow
+        } else {
+            const opacity = 0.85 + (rowValue - 200000) / 200000 * 0.15; // Slightly brighter for higher values
+            element.style.backgroundColor = `rgba(58, 159, 72, 0.4)`; // Gradient green
+            element.style.boxShadow = `0 4px 8px rgba(58, 159, 72, 0.4)`; // Matching shadow
+        }
+
+
+        element.style.borderRadius = '10px'; // Rounded corners for aesthetic look
+        element.style.overflow = 'hidden'; // Ensure content stays inside
+        element.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+
+        // Center the image inside
+        const image = document.createElement('img');
+        image.src = row[1];
+        image.alt = "Image";
+        image.style.position = 'absolute';
+        image.style.top = '40%'; // Adjust top offset for alignment
+        image.style.left = '50%';
+        image.style.transform = 'translate(-50%, -50%)';
+        image.style.width = '120px'; // Scaled-down image
+        image.style.height = '120px';
+        element.appendChild(image);
+
+        // Bottom label
+        const bottomLabel = document.createElement('div');
+        bottomLabel.className = 'bottom';
+        bottomLabel.textContent = row[0];
+        bottomLabel.style.position = 'absolute';
+        bottomLabel.style.top = '70%';
+        bottomLabel.style.left = '50%';
+        bottomLabel.style.transform = 'translateX(-50%)';
+        bottomLabel.style.fontWeight = 'bold';
+        bottomLabel.style.fontSize = '14px';
+        bottomLabel.style.textAlign = 'center';
+        element.appendChild(bottomLabel);
+
+        // Top-right label
+        const topRightLabel = document.createElement('div');
+        topRightLabel.className = 'top-right';
+        topRightLabel.textContent = row[2];
+        topRightLabel.style.position = 'absolute';
+        topRightLabel.style.top = '10px';
+        topRightLabel.style.right = '10px';
+        topRightLabel.style.fontSize = '14px';
+        topRightLabel.style.fontWeight = 'bold';
+        element.appendChild(topRightLabel);
+
+        // Top-left label
+        const topLeftLabel = document.createElement('div');
+        topLeftLabel.className = 'top-left';
+        topLeftLabel.textContent = row[3];
+        topLeftLabel.style.position = 'absolute';
+        topLeftLabel.style.top = '10px';
+        topLeftLabel.style.left = '10px';
+        topLeftLabel.style.fontSize = '14px';
+        topLeftLabel.style.fontWeight = 'bold';
+        element.appendChild(topLeftLabel);
+
+        // Bottom second label
+        const bottom2Label = document.createElement('div');
+        bottom2Label.className = 'bottom2';
+        bottom2Label.textContent = row[4];
+        bottom2Label.style.position = 'absolute';
+        bottom2Label.style.top = '90%';
+        bottom2Label.style.left = '50%';
+        bottom2Label.style.transform = 'translateX(-50%)';
+        bottom2Label.style.fontSize = '12px';
+        bottom2Label.style.textAlign = 'center';
+        element.appendChild(bottom2Label);
+
+        const objectCSS = new CSS3DObject(element);
+
+        // Adjust positions for 20x10 grid
+        const rowIndex = Math.floor(i / numColumns);
+        const colIndex = i % numColumns;
+
+        const xPos = (colIndex * 200) - (numColumns / 2) * 200 + 100; // Center horizontally
+        const yPos = -(rowIndex * 260) + (numRows / 2) * 260 - 130; // Center vertically
+
+        objectCSS.position.set(xPos, yPos, 0); // Set to 2D layout (z=0)
+
+        scene.add(objectCSS);
+        objects.push(objectCSS);
+
+        const object = new THREE.Object3D();
+        object.position.set(xPos, yPos, 0);
+        targets.table.push(object);
+    }
+
+
+      // sphere
+
+      const vector = new THREE.Vector3();
+
+      for ( let i = 0, l = objects.length; i < l; i ++ ) {
+
+        const phi = Math.acos( - 1 + ( 2 * i ) / l );
+        const theta = Math.sqrt( l * Math.PI ) * phi;
+
+        const object = new THREE.Object3D();
+
+        object.position.setFromSphericalCoords( 800, phi, theta );
+
+        vector.copy( object.position ).multiplyScalar( 2 );
+
+        object.lookAt( vector );
+
+        targets.sphere.push( object );
+
+      }
+
+      // helix
+      for (let i = 0, l = objects.length; i < l; i++) {
+        const theta = i * 0.175 + Math.PI;
+        const object = new THREE.Object3D();
+
+        // Split the objects in half for two helixes
+        if (i < l / 2) {
+            // First half of the objects, apply theta normally for the first helix
+            const y = -(i * 8) + 1000;
+
+            object.position.setFromCylindricalCoords(900, theta, y);
+        } else {
+            // Second half of the objects, apply a slight offset to the theta for the second helix
+            const y = -(i * 8)+500;
+
+            const offsetTheta = theta + Math.PI;  // Adding Math.PI offsets the second helix by 180 degrees
+            object.position.setFromCylindricalCoords(900, offsetTheta, y);
+        }
+
+        // Adjust lookAt direction for proper orientation
+        vector.x = object.position.x * 2;
+        vector.y = object.position.y;
+        vector.z = object.position.z * 2;
+
+        object.lookAt(vector);
+
+        // Store each object in the targets array for both helixes
+        targets.helix.push(object);
+    }
+
+
+      // grid
+
+      for ( let i = 0; i < objects.length; i ++ ) {
+
+        const object = new THREE.Object3D();
+
+        object.position.x = ( ( i % 5 ) * 400 ) - 800;
+        object.position.y = ( - ( Math.floor( i / 5 ) % 5 ) * 400 ) + 800;
+        object.position.z = ( Math.floor( i / 25 ) ) * 1000 - 2000;
+
+        targets.grid.push( object );
+
+      }
+
+      //
+
+      renderer = new CSS3DRenderer();
+      renderer.setSize( window.innerWidth, window.innerHeight );
+      document.getElementById( 'container' ).appendChild( renderer.domElement );
+
+      //
+
+      controls = new TrackballControls( camera, renderer.domElement );
+      controls.minDistance = 500;
+      controls.maxDistance = 6000;
+      controls.addEventListener( 'change', render );
+
+      const buttonTable = document.getElementById( 'table' );
+      buttonTable.addEventListener( 'click', function () {
+
+        transform( targets.table, 2000 );
+
+      } );
+
+      const buttonSphere = document.getElementById( 'sphere' );
+      buttonSphere.addEventListener( 'click', function () {
+
+        transform( targets.sphere, 2000 );
+
+      } );
+
+      const buttonHelix = document.getElementById( 'helix' );
+      buttonHelix.addEventListener( 'click', function () {
+
+        transform( targets.helix, 2000 );
+
+      } );
+
+      const buttonGrid = document.getElementById( 'grid' );
+      buttonGrid.addEventListener( 'click', function () {
+
+        transform( targets.grid, 2000 );
+
+      } );
+
+      transform( targets.table, 2000 );
+
+      //
+
+      window.addEventListener( 'resize', onWindowResize );
+
+    }
+
+    function transform( targets, duration ) {
+
+      TWEEN.removeAll();
+
+      for ( let i = 0; i < objects.length; i ++ ) {
+
+        const object = objects[ i ];
+        const target = targets[ i ];
+
+        new TWEEN.Tween( object.position )
+          .to( { x: target.position.x, y: target.position.y, z: target.position.z }, Math.random() * duration + duration )
+          .easing( TWEEN.Easing.Exponential.InOut )
+          .start();
+
+        new TWEEN.Tween( object.rotation )
+          .to( { x: target.rotation.x, y: target.rotation.y, z: target.rotation.z }, Math.random() * duration + duration )
+          .easing( TWEEN.Easing.Exponential.InOut )
+          .start();
+
+      }
+
+      new TWEEN.Tween( this )
+        .to( {}, duration * 2 )
+        .onUpdate( render )
+        .start();
+
+    }
+
+    function onWindowResize() {
+
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+
+      renderer.setSize( window.innerWidth, window.innerHeight );
+
+      render();
+
+    }
+
+    function animate() {
+
+      requestAnimationFrame( animate );
+
+      TWEEN.update();
+
+      controls.update();
+
+    }
+
+    function render() {
+
+      renderer.render( scene, camera );
+
+    }
+
   </script>
+
 </body>
 </html>
