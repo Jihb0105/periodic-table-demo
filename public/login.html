@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> 
+  <title>Login</title>
+</head>
+<body>
+    <div style="text-align: center; margin-top: 20%;">
+        <h1>Welcome Back</h1>
+        <button id="loginButton" style="padding: 10px 20px; font-size: 16px;">Login with Google</button>
+    </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+
+    // Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyB4JvaT-0V-S8i-pAGcwMpZEYawKXxzTSk",
+        authDomain: "periodictable-d223e.firebaseapp.com",
+        projectId: "periodictable-d223e",
+        storageBucket: "periodictable-d223e.firebasestorage.app",
+        messagingSenderId: "7306314995",
+        appId: "1:7306314995:web:9fb42c98d9e95c25eee386",
+        measurementId: "G-BRH4GNZ9EM"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth();
+    const provider = new GoogleAuthProvider();
+
+    // Check if the user is already logged in
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // Redirect to index.html if the user is already logged in
+            window.location.href = "index.html";
+        }
+    });
+
+    // Login with Google
+    async function loginWithGoogle() {
+        try {
+            const result = await signInWithPopup(auth, provider);
+            window.location.href = "index.html";
+        } catch (error) {
+            alert("Failed to login. Please try again.");
+        }
+    }
+
+    // Use jQuery to handle button click
+    $(document).ready(function() {
+        $('#loginButton').click(function() {
+            loginWithGoogle();
+        });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Periodic Table</title>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/CSVLoader.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> 
+</head>
+<body>
+  <div id="container" style="text-align: center;">
+    <h1>3D P-File Table</h1>
+    <button id="signOutButton" style="padding: 10px 20px; font-size: 16px; display: none;" onclick="signOutUser()">Sign Out</button>
+    <div id="threejs-canvas"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyB4JvaT-0V-S8i-pAGcwMpZEYawKXxzTSk",
+      authDomain: "periodictable-d223e.firebaseapp.com",
+      projectId: "periodictable-d223e",
+      storageBucket: "periodictable-d223e.firebasestorage.app",
+      messagingSenderId: "7306314995",
+      appId: "1:7306314995:web:9fb42c98d9e95c25eee386",
+      measurementId: "G-BRH4GNZ9EM"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth();
+
+    // Check authentication state
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+      } else {
+        $("#signOutButton").show();
+        load3DTable();
+      }
+    });
+
+    // Sign out function
+    function signOutUser() {
+      signOut(auth).then(() => {
+        window.location.href = "login.html";
+      }).catch((error) => {
+        alert("Error signing out. Please try again.");
+      });
+    }
+
+    // Load the 3D Periodic Table
+    function load3DTable()
+    {
+      // Create the scene
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf0f0f0);
+
+      // Create the camera
+      const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+      camera.position.set(0, 50, 200);
+
+      // Create the renderer
+      const renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      $("#threejs-canvas").append(renderer.domElement);
+
+      // Add light
+      const light = new THREE.PointLight(0xffffff, 1, 1000);
+      light.position.set(50, 50, 50);
+      scene.add(light);
+
+      const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light
+      scene.add(ambientLight);
+
+      // Periodic table data (example: [symbol, x, y, z])
+      const elements = [
+        ["H", 0, 0, 0],
+        ["He", 10, 0, 0],
+        ["Li", 0, 10, 0],
+        ["Be", 10, 10, 0],
+        ["B", 20, 10, 0],
+        ["C", 30, 10, 0],
+        ["N", 40, 10, 0],
+        ["O", 50, 10, 0],
+        ["F", 60, 10, 0],
+        ["Ne", 70, 10, 0],
+      ];
+
+      // Add elements to the scene
+      $.each(elements, function (index, element) {
+        const [symbol, x, y, z] = element;
+
+        // Create a cube for each element
+        const geometry = new THREE.BoxGeometry(5, 5, 5);
+        const material = new THREE.MeshStandardMaterial({ color: 0x0077ff });
+        const cube = new THREE.Mesh(geometry, material);
+        cube.position.set(x, y, z);
+        scene.add(cube);
+
+        // Add a label for the element
+        const labelDiv = $("<div></div>")
+          .css({
+            position: "absolute",
+            color: "black",
+            fontSize: "12px",
+            transform: `translate(${x}px, ${y}px)`,
+            marginLeft: `${window.innerWidth / 2 + x}px`,
+            marginTop: `${window.innerHeight / 2 - y}px`,
+          })
+          .text(symbol);
+        $("body").append(labelDiv);
+      });
+
+      // Animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+      }
+      animate();
+    }
+
+    // Attach event handler for sign out button
+    $(document).ready(function() {
+      $("#signOutButton").click(function() {
+        signOutUser();
+      });
+    });
+  </script>
+</body>
+</html>
