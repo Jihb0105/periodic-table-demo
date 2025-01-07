@@ -408,28 +408,32 @@
         targets.helix.push(object);
     }
 
-
       // grid
+      const gridX = 5;  // Number of objects along x-axis
+      const gridY = 4;  // Number of objects along y-axis
+      const gridZ = 10; // Number of objects along z-axis
+      const spacingX = 400; // Spacing between objects along x-axis
+      const spacingY = 400; // Spacing between objects along y-axis
+      const spacingZ = 1000; // Spacing between objects along z-axis
 
-      for ( let i = 0; i < objects.length; i ++ ) {
-
+      for (let i = 0; i < objects.length; i++) {
         const object = new THREE.Object3D();
 
-        object.position.x = ( ( i % 5 ) * 400 ) - 800;
-        object.position.y = ( - ( Math.floor( i / 5 ) % 5 ) * 400 ) + 800;
-        object.position.z = ( Math.floor( i / 25 ) ) * 1000 - 2000;
+        // Calculate positions based on grid indices
+        const xIndex = i % gridX; // Current index on x-axis
+        const yIndex = Math.floor(i / gridX) % gridY; // Current index on y-axis
+        const zIndex = Math.floor(i / (gridX * gridY)); // Current index on z-axis
 
-        targets.grid.push( object );
+        object.position.x = (xIndex * spacingX) - ((gridX - 1) * spacingX) / 2; // Center along x-axis
+        object.position.y = (yIndex * -spacingY) + ((gridY - 1) * spacingY) / 2; // Center along y-axis
+        object.position.z = (zIndex * spacingZ) - ((gridZ - 1) * spacingZ) / 2; // Center along z-axis
 
+        targets.grid.push(object);
       }
-
-      //
 
       renderer = new CSS3DRenderer();
       renderer.setSize( window.innerWidth, window.innerHeight );
       document.getElementById( 'container' ).appendChild( renderer.domElement );
-
-      //
 
       controls = new TrackballControls( camera, renderer.domElement );
       controls.minDistance = 500;
