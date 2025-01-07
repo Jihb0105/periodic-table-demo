@@ -102,10 +102,19 @@
         object-position: center;  /* Centers the image within the container */
     }
 
+    .container {
+      display: flex;
+      flex-direction: column; 
+      align-items: center;
+      text-align: center;
+    }
+
   </style>
 </head>
 <body>
-    <button id="signOutButton">Sign Out</button>
+    <div class="container">
+      <button id="signOutButton">Sign Out</button>
+    </div>
     <div id="container"></div>
     <div id="menu">
         <button id="table">TABLE</button>
@@ -150,11 +159,6 @@
     const SECRET_KEY = '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';
     const API_KEY = 'AIzaSyB4JvaT-0V-S8i-pAGcwMpZEYawKXxzTSk';
     const SHEET_ID = '14hIsbDOzjo3l92wNCKAQBwZBmjMrYjiG1DdrNvQwbm4';
-
-    // const table = [
-    //   'Lee Siew Suan', 'https://static.kasatria.com/pivot-img/photo/019.jpg', 25, 'CN', 'Writing',
-    //   'New Yee Chian', 'https://static.kasatria.com/pivot-img/photo/020.jpg', 22, 'CN', 'Cooking'
-    // ];
 
     let camera, scene, renderer, controls;
 
@@ -239,6 +243,7 @@
     function parseCurrencyToFloat(currencyString) {
         return parseFloat(currencyString.replace(/[^0-9.-]+/g, ''));
     }
+
     function init() {
 
       camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 10000 );
